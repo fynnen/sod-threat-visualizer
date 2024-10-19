@@ -1,5 +1,7 @@
+import { ThreatEvent } from '../../types/types';
 import { WCLEvent } from '../../types/WarcraftLogs/types';
 
 export abstract class ThreatProcessor {
-  abstract calculateThreat(event: WCLEvent): number;
+  abstract processLog(): ThreatEvent[];
+  abstract calculateThreat(event: WCLEvent): ThreatEvent;
 }

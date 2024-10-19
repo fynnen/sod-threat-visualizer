@@ -8,6 +8,7 @@ export enum WCLEventType {
   removedebuff = 'removedebuff',
   heal = 'heal',
   applybuff = 'applybuff',
+  removebuff = 'removebuff',
   applybuffstack = 'applybuffstack',
   removebuffstack = 'removebuffstack',
   refreshbuff = 'refreshbuff',
@@ -46,10 +47,28 @@ export interface WCLRemoveDebuffEvent extends WCLEvent {
   sourceMarker: number;
 }
 
+export interface WCLCombatantInfoAura {
+  source: number;
+  ability: number;
+  stacks: number;
+  icon: string;
+  name: string;
+}
+
+export interface WCLCombatantInfoGear {
+  id: number;
+  quality: number;
+  icon: string;
+  itemLevel: number;
+  permanentEnchant?: number;
+  temporaryEnchant?: number;
+  setId?: number;
+}
+
 export interface WCLCombatantInfoEvent extends WCLEvent {
   type: WCLEventType.combatantinfo;
-  gear: any;
-  auras: any;
+  gear: WCLCombatantInfoGear[];
+  auras: WCLCombatantInfoAura[];
   expansion: string;
   faction: number;
   specId: number;
@@ -115,6 +134,13 @@ export interface WCLResourceChangeEvent extends WCLEvent {
 
 export interface WCLApplyBuffEvent extends WCLEvent {
   type: WCLEventType.applybuff;
+  targetID: number;
+  abilityGameID: number;
+  sourceMarker: number;
+  targetMarker: number;
+}
+export interface WCLRemoveBuffEvent extends WCLEvent {
+  type: WCLEventType.removebuff;
   targetID: number;
   abilityGameID: number;
   targetMarker: number;

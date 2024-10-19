@@ -24,3 +24,7 @@ export interface PlayerEvents {
   playerId: number;
   events: any;
 }
+
+export interface ThreatEvent {
+  threat: number;
+}
