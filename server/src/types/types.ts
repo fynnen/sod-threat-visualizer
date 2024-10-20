@@ -24,3 +24,14 @@ export interface PlayerEvents {
   playerId: number;
   events: any;
 }
+
+export interface ThreatEvent {
+  timestamp: number;
+  threat: number;
+  totalThreat: number;
+}
+
+export interface AggregatedThreatEvent {
+  second: number;
+  totalThreat: number;
+}
