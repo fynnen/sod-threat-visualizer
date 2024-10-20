@@ -26,5 +26,12 @@ export interface PlayerEvents {
 }
 
 export interface ThreatEvent {
+  timestamp: number;
   threat: number;
+  totalThreat: number;
+}
+
+export interface AggregatedThreatEvent {
+  second: number;
+  totalThreat: number;
 }

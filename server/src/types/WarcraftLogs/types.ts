@@ -1,3 +1,29 @@
+export interface WCLActor {
+  gameID: number;
+  icon: string;
+  id: number;
+  name: string;
+  petOwner: number;
+  server: number;
+  subType: string;
+  type: string;
+}
+
+export interface WCLFight {
+  id: number;
+  name: string;
+  friendlyPlayers: number[];
+  classicSeasonID: number;
+  startTime: number;
+  gameZone: {
+    name: string;
+  };
+  enemyNPCs: {
+    gameID;
+    id;
+  };
+}
+
 export enum WCLEventType {
   combatantinfo = 'combatantinfo',
   cast = 'cast',

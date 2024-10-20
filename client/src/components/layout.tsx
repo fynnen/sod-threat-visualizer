@@ -1,3 +1,5 @@
+import { LogoGithub } from "@carbon/icons-react";
+
 import localFont from "next/font/local";
 import "../app/globals.css";
 
@@ -18,24 +20,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <main
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </main>
+    <main className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <div className="flex items-center justify-between h-16 bg-gray-200 border-b border-gray-400 dark:bg-gray-800 dark:border-black px-8">
+        <h1> SOD Threat Analyzer</h1>
+        <div>
+          <a
+            href="https://github.com/fynnen/sod-threat-visualizer/"
+            target="_blank"
+          >
+            <LogoGithub size={40} />
+          </a>
+        </div>
+      </div>
+      <div className="flex flex-col flex-1 overflow-y-auto m-8">{children}</div>
+    </main>
   );
 }
-
-
-// export default function Layout({ children }: PropsWithChildren) {
-//   return (
-//     <>
-//       <main className="flex min-h-screen bg-gray-100">
-//         <div className="flex flex-col flex-1 overflow-y-auto">
-//           <div className="flex items-center justify-between h-16 bg-white border-b border-gray-200 pb-4"></div>
-//           <div className="m-12">{children}</div>
-//         </div>
-//       </main>
-//     </>
-//   );
-// }

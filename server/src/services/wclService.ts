@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { WCLEvent } from '../types/WarcraftLogs/types';
 
 export const getWarcraftLogsAccessToken = async (): Promise<string> => {
   const clientId = process.env.WARCRAFT_LOGS_CLIENT_ID;
@@ -17,17 +16,32 @@ export const getWarcraftLogsAccessToken = async (): Promise<string> => {
   return response.data.access_token;
 };
 
-export const getReportEvents = async (
-  reportId: string,
-  encounterId: number,
-  playerId: number,
-  targetId: number,
-) => {
+type DetailedReportForPlayerParams = {
+  reportId: string;
+  encounterId: number;
+  playerId: number;
+  targetId: number;
+};
+
+export const getDetailedReportForPlayer = async ({
+  reportId,
+  encounterId,
+  playerId,
+  targetId,
+}: DetailedReportForPlayerParams) => {
   const accessToken = await getWarcraftLogsAccessToken();
   const query = `#graphql
     query($reportId: String!, $sourceId: Int!, $fightIds: [Int!], $targetId: Int!) {
       reportData {
         report(code: $reportId) {
+          masterData {
+            actors(type: "Player") {
+              id
+              name
+              type
+              subType
+            }
+          }
           events(
             dataType: All
             fightIDs: $fightIds
@@ -36,6 +50,20 @@ export const getReportEvents = async (
           ) {
             data
           }
+          fights(fightIDs: $fightIds) {
+              id
+              name
+              friendlyPlayers
+              classicSeasonID
+              startTime
+              gameZone {
+                name
+              }
+              enemyNPCs {
+                gameID
+                id
+              }
+            }
         }
       }
     }
@@ -59,10 +87,10 @@ export const getReportEvents = async (
     },
   );
 
-  return response.data.data.reportData.report.events.data;
+  return response.data.data.reportData.report;
 };
 
-export const getReportData = async (code: string) => {
+export const getReportSummary = async (reportId: string) => {
   const accessToken = await getWarcraftLogsAccessToken();
   const query = `#graphql
     query($reportId: String!) {
@@ -70,7 +98,7 @@ export const getReportData = async (code: string) => {
           report(code: $reportId) {
             title
             masterData {
-              actors(type: "Player") {
+              actors {
                 id
                 name
                 type
@@ -81,11 +109,13 @@ export const getReportData = async (code: string) => {
               name
               friendlyPlayers
               classicSeasonID
+              startTime
               gameZone {
                 name
               }
               enemyNPCs {
                 gameID
+                id
               }
             }
           }
@@ -97,7 +127,7 @@ export const getReportData = async (code: string) => {
     {
       query,
       variables: {
-        reportId: code,
+        reportId: reportId,
       },
     },
     {
@@ -107,5 +137,5 @@ export const getReportData = async (code: string) => {
     },
   );
 
-  return response.data.data.reportData;
+  return response.data.data.reportData.report;
 };

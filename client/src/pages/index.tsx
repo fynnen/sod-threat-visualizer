@@ -1,101 +1,270 @@
-import Image from "next/image";
+import { LineChart } from "@/components/LineChart";
+import { gql, useQuery } from "@apollo/client";
+import { useState } from "react";
+
+const DETAIL_QUERY = gql`
+  query PlayerThreatEvents(
+    $reportId: String!
+    $playerId: Int!
+    $encounterId: Int!
+    $targetId: Int!
+  ) {
+    playerThreatEvents(
+      reportId: $reportId
+      playerId: $playerId
+      encounterId: $encounterId
+      targetId: $targetId
+    ) {
+      second
+      totalThreat
+    }
+  }
+`;
+
+function ReportDetail({
+  reportCode,
+  encounterId,
+  targetId,
+  player,
+}: {
+  reportCode: string;
+  player: any;
+  encounterId: number;
+  targetId: number;
+}) {
+  const { loading, error, data } = useQuery(DETAIL_QUERY, {
+    variables: {
+      reportId: reportCode,
+      encounterId,
+      targetId,
+      playerId: player.id,
+    },
+  });
+
+  if (loading) return <h2>"Loading..."</h2>;
+
+  if (error) return <p>`Error! ${error.message}`</p>;
+
+  const chartData = {
+    labels: data.playerThreatEvents.map((x: any) => x.second),
+    datasets: [
+      {
+        label: player.name,
+        data: data.playerThreatEvents.map((x: any) => x.totalThreat),
+        backgroundColor: "red",
+        borderColor: "red",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  return (
+    <>
+      <LineChart chartData={chartData} />
+    </>
+  );
+}
+
+const SUMMARY_QUERY = gql`
+  query ReportQuery($code: String!) {
+    reportSummary(code: $code) {
+      title
+      encounters {
+        id
+        name
+        zone
+        players {
+          id
+          name
+        }
+        enemies {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
+
+type Player = {
+  id: number;
+  name: string;
+};
+function Report({ reportCode }: { reportCode: string }) {
+  const [encounterId, setEncounterId] = useState(0);
+  const [targetId, setTargetId] = useState(0);
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [showGraph, setShowGraph] = useState(false);
+
+  const { loading, error, data } = useQuery(SUMMARY_QUERY, {
+    variables: { code: reportCode },
+  });
+
+  if (loading) return <h2>"Loading..."</h2>;
+
+  if (error) return <p>`Error! ${error.message}`</p>;
+
+  const currentEncounter = data?.reportSummary?.encounters.find(
+    (x: any) => x.id === encounterId
+  );
+
+  return (
+    <>
+      <h2>Log: {data.reportSummary.title}</h2>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Select an encounter
+          </label>
+          <select
+            id="countries"
+            defaultValue={"0"}
+            onChange={(e) => {
+              setShowGraph(false);
+              setEncounterId(parseInt(e.target.value, 10));
+            }}
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          >
+            <option value="0">Choose an encounter</option>
+            {data?.reportSummary?.encounters &&
+              data?.reportSummary?.encounters.map((x: any) => {
+                return <option value={x.id}>{x.name}</option>;
+              })}
+          </select>
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Select a target
+          </label>
+          <select
+            id="countries"
+            defaultValue={"0"}
+            onChange={(e) => {
+              setShowGraph(false);
+              setTargetId(parseInt(e.target.value, 10));
+            }}
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          >
+            <option value="0">Choose a target</option>
+            {currentEncounter &&
+              currentEncounter.enemies.map((x: any) => {
+                return <option value={x.id}>{x.name}</option>;
+              })}
+          </select>
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Select a player
+          </label>
+          <select
+            id="countries"
+            defaultValue={"0"}
+            onChange={(e) => {
+              setShowGraph(false);
+              setPlayer(
+                currentEncounter.players.find(
+                  (x: any) => x.id === parseInt(e.target.value, 10)
+                )
+              );
+            }}
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          >
+            <option value="0">Choose a player</option>
+            {currentEncounter &&
+              currentEncounter.players.map((x: any) => {
+                return <option value={x.id}>{x.name}</option>;
+              })}
+          </select>
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={encounterId === 0 || targetId === 0 || player?.id === 0}
+        onClick={() => setShowGraph(true)}
+        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+      >
+        Analyze
+      </button>
+      {showGraph && (
+        <ReportDetail
+          encounterId={encounterId}
+          targetId={targetId}
+          player={player}
+          reportCode={reportCode}
+        />
+      )}
+    </>
+  );
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [url, setUrl] = useState("");
+  const [reportCode, setReportCode] = useState("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const onFetch = () => {
+    setReportCode("");
+    const regex =
+      /(https:\/\/(vanilla|sod|classic|wwww).warcraftlogs.com\/reports\/)(\w*)(#.*)?/gm;
+    const groups = regex.exec(url);
+    setReportCode(groups ? groups[3] : "");
+  };
+
+  return (
+    <div>
+      <p className="mb-4">
+        Lets you import a warcraftlog report and analyze the threat done by
+        players for a specific encounter.
+      </p>
+      <div className="flex flex-col gap-4">
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Warcraftlog URL
+          </label>
+          <div>
+            <div className="relative">
+              <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                <svg
+                  className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="search"
+                id="search"
+                className="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                placeholder="https://sod.warcraftlogs.com"
+                required
+                onChange={(e) => setUrl(e.target.value)}
+              />
+              <button
+                type="submit"
+                onClick={onFetch}
+                className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              >
+                Fetch
+              </button>
+            </div>
+            <p
+              id="helper-text-explanation"
+              className="mt-2 text-sm text-gray-500 dark:text-gray-400"
+            >
+              You can either input the full URL or just the report code
+            </p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        {reportCode && <Report reportCode={reportCode} />}
+      </div>
     </div>
   );
 }

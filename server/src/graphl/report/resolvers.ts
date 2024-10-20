@@ -1,11 +1,20 @@
-import { ThreatProcessorFactory } from '../../services/threatProcessors/threatProcessorFactory';
+import { PlayerClassFactory } from '../../classes/playerFactory';
 import {
-  getReportData,
-  getReportEvents,
+  ThreatAggregator,
+  ThreatProcessor,
+} from '../../services/threatProcessor';
+import {
+  getDetailedReportForPlayer,
+  getReportSummary,
   getWarcraftLogsAccessToken,
 } from '../../services/wclService';
-import { Report, ThreatEvent } from '../../types/types';
-import { WCLEvent } from '../../types/WarcraftLogs/types';
+import { AggregatedThreatEvent, Report, ThreatEvent } from '../../types/types';
+import {
+  WCLActor,
+  WCLCombatantInfoEvent,
+  WCLEvent,
+  WCLEventType,
+} from '../../types/WarcraftLogs/types';
 
 export interface GetPlayerEventsParams {
   reportId: string;
@@ -17,41 +26,40 @@ export interface GetPlayerEventsParams {
 const getPlayerThreatEvents = async (
   _: never,
   { reportId, encounterId, playerId, targetId }: GetPlayerEventsParams,
-): Promise<ThreatEvent[]> => {
-  const events = await getReportEvents(
+): Promise<AggregatedThreatEvent[]> => {
+  const detailReportForPlayer = await getDetailedReportForPlayer({
     reportId,
     encounterId,
     playerId,
     targetId,
+  });
+
+  console.log(detailReportForPlayer.fights);
+  const fight = detailReportForPlayer.fights.find(x => x.id === encounterId);
+
+  const player = detailReportForPlayer.masterData.actors.find(
+    x => x.id === playerId,
+  ) as WCLActor;
+
+  const events = detailReportForPlayer.events.data as WCLEvent[];
+  const combatantInfo = events.find(
+    x => x.type === WCLEventType.combatantinfo,
+  ) as WCLCombatantInfoEvent;
+
+  const playerClass = PlayerClassFactory.createPlayerClass(
+    player,
+    combatantInfo,
+  );
+  const processor = new ThreatProcessor(events, playerClass, fight);
+
+  const threatEvents = processor.processLog();
+
+  const threatPerSecond = ThreatAggregator.aggregateThreatBySecond(
+    fight.startTime,
+    threatEvents,
   );
 
-  const processor = ThreatProcessorFactory.getProcessor(
-    'Rogue',
-    events as WCLEvent[],
-  );
-
-  return processor.processLog();
-};
-
-const getPlayerEvents = async (
-  _: never,
-  { reportId, encounterId, playerId, targetId }: GetPlayerEventsParams,
-): Promise<string> => {
-  const events = await getReportEvents(
-    reportId,
-    encounterId,
-    playerId,
-    targetId,
-  );
-
-  const processor = ThreatProcessorFactory.getProcessor(
-    'Rogue',
-    events as WCLEvent[],
-  );
-
-  processor.processLog();
-
-  return JSON.stringify(events);
+  return threatPerSecond;
 };
 
 interface GetReportParams {
@@ -62,19 +70,31 @@ const getReport = async (
   _: never,
   { code }: GetReportParams,
 ): Promise<Report> => {
-  const reportData = await getReportData(code);
+  const report = await getReportSummary(code);
 
-  const players = reportData.report.masterData.actors.map(x => {
-    return {
-      id: x.id,
-      name: x.name,
-      type: x.type,
-    };
-  });
+  const players = report.masterData.actors
+    .filter(x => x.type === 'Player')
+    .map(x => {
+      return {
+        id: x.id,
+        name: x.name,
+        type: x.type,
+      };
+    });
+
+  const npc = report.masterData.actors
+    .filter(x => x.type === 'NPC')
+    .map(x => {
+      return {
+        id: x.id,
+        name: x.name,
+        type: x.type,
+      };
+    });
 
   return {
-    title: reportData.report.title,
-    encounters: reportData.report.fights.map(x => {
+    title: report.title,
+    encounters: report.fights.map(x => {
       return {
         id: x.id,
         name: x.name,
@@ -83,7 +103,7 @@ const getReport = async (
           return players.find(player => player.id === x);
         }),
         enemies: x.enemyNPCs.map(x => {
-          return { id: x.gameID };
+          return npc.find(npc => npc.id === x.id);
         }),
       };
     }),
@@ -92,9 +112,8 @@ const getReport = async (
 
 export const reportResolver = {
   Query: {
-    playerEvents: getPlayerEvents,
     playerThreatEvents: getPlayerThreatEvents,
-    report: getReport,
+    reportSummary: getReport,
     token: async () => {
       return await getWarcraftLogsAccessToken();
     },

@@ -1,7 +1,8 @@
 export const reportTypeDefs = `#graphql
 
   type EnemyNpc {
-    id: Int
+    id: Int!
+    name: String!
   }
 
   type Player {
@@ -17,19 +18,19 @@ export const reportTypeDefs = `#graphql
     players: [Player!]!
   }
 
-  type Report {
+  type ReportSummary {
     title: String!
     encounters: [Encounter]!
   }
 
-  type ThreatEvent {
-    threat: Float
+  type AggregatedThreatEvent {
+    second: Int
+    totalThreat: Float
   }
 
   type Query {
-    report(code: String!): Report
-    playerEvents(reportId: String!, playerId: Int!, encounterId: Int!, targetId: Int!): String
-    playerThreatEvents(reportId: String!, playerId: Int!, encounterId: Int!, targetId: Int!): [ThreatEvent!]!
+    reportSummary(code: String!): ReportSummary
+    playerThreatEvents(reportId: String!, playerId: Int!, encounterId: Int!, targetId: Int!): [AggregatedThreatEvent!]!
     token: String!
   }
 `;
