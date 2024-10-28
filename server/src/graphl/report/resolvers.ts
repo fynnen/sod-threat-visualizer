@@ -45,7 +45,6 @@ const getPlayerThreatEvents = async (
   const combatantInfo = events.find(
     x => x.type === WCLEventType.combatantinfo,
   ) as WCLCombatantInfoEvent;
-
   const playerClass = PlayerClassFactory.createPlayerClass(
     player,
     combatantInfo,

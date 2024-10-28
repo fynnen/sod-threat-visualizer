@@ -6,18 +6,20 @@ import {
   WCLEventType,
   WCLRemoveBuffEvent,
 } from '../types/WarcraftLogs/types';
+import {
+  GenericAbilities,
+  GenericAuras,
+  GenericThreatModifierAuras,
+} from './genericValues';
 import { PlayerClass } from './playerClass';
 
-enum Auras {
-  Alpha = 408696,
+enum RogueAuras {
   JustAFleshWound = 400014,
 }
-
-enum GenericAbilities {
-  Melee = 1,
-  FireStrike = 468167, //Blazefury medallion proc
-  Thorns = 9910,
-}
+const Auras = {
+  ...GenericAuras,
+  ...RogueAuras,
+} as const;
 
 enum RogueAbilities {
   Eviscerate = 31016,
@@ -41,7 +43,7 @@ const Abilities = {
 } as const;
 
 const threatModifierAuras = {
-  [Auras.Alpha]: { modifier: 1.45 },
+  ...GenericThreatModifierAuras,
   [Auras.JustAFleshWound]: { modifier: 2.65 },
 };
 
@@ -62,7 +64,7 @@ export class Rogue implements PlayerClass {
       x => x.ability === Auras.JustAFleshWound,
     );
     this.has2pt1 =
-      combatantInfo.gear.filter(x => x.setId === T1Set).length >= 2;
+      combatantInfo.gear.filter(x => x.setID === T1Set).length >= 2;
     this.setBaseThreatModifier();
   }
 
@@ -108,6 +110,7 @@ export class Rogue implements PlayerClass {
         case Abilities.CrimsonTempest:
         case Abilities.FanOfKnives:
         case Abilities.Blunderbuss:
+          threat *= 2;
           if (this.has2pt1 && this.hasJAFW && this.hasBladeDanceAura) {
             threat *= 2;
           }

@@ -50,19 +50,15 @@ export class ThreatAggregator {
     let totalThreat = 0;
 
     events.forEach(event => {
-      // Zero out and normalize the timestamp tothe nearest second (assuming timestamp is in ms)
       const second = Math.floor((event.timestamp - startTime) / 1000) + 1;
 
-      // Initialize the total threat for this second if it hasn't been set
       if (!aggregated[second]) {
         aggregated[second] = totalThreat;
       }
       totalThreat += event.threat;
-      // Add the event's threat to the total for that second
       aggregated[second] = totalThreat;
     });
 
-    // Convert the aggregated object back into an array of AggregatedThreatEvent
     return Object.keys(aggregated).map(second => ({
       second: Number(second),
       totalThreat: aggregated[second],
