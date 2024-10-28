@@ -88,7 +88,7 @@ export interface WCLCombatantInfoGear {
   itemLevel: number;
   permanentEnchant?: number;
   temporaryEnchant?: number;
-  setId?: number;
+  setID?: number;
 }
 
 export interface WCLCombatantInfoEvent extends WCLEvent {

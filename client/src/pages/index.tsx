@@ -51,9 +51,9 @@ function ReportDetail({
       {
         label: player.name,
         data: data.playerThreatEvents.map((x: any) => x.totalThreat),
-        backgroundColor: "red",
-        borderColor: "red",
-        borderWidth: 1,
+        backgroundColor: "#FFF468",
+        borderColor: "#FFF468",
+        borderWidth: 0.5,
       },
     ],
   };
